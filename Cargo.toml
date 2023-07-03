@@ -1,0 +1,32 @@
+[package]
+name = "api-shower"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# web request & response
+axum = "0.6.18"
+hyper = { version = "0.14.26", features = ["full"] }
+tokio = { version = "1.28.2", features = ["full"] }
+tower = "0.4.13"
+mime = "0.3.17"
+
+# data serialization
+serde = { version = "1.0.136", features = ["derive"] }
+serde_json = "1.0.99"
+
+# logging, debug
+tracing = "0.1.37"
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+anyhow = "1.0.71"
+thiserror = "1.0.40"
+
+# validation
+validator = { version = "0.16.1", features = ["derive"] }
+dotenv = "0.15.0"
+
+# database
+sqlx = { version = "0.6.3", features = ["runtime-tokio-native-tls", "postgres", "macros"] }
+
