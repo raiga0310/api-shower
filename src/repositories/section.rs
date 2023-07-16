@@ -18,23 +18,28 @@ pub trait SectionRepository: Clone + std::marker::Send + std::marker::Sync + 'st
     fn find_by_id(&self, id: i32) -> Option<Box<Section>>;
     fn find_by_gender(&self, gender: String) -> anyhow::Result<Vec<Section>>;
     fn find_by_building(&self, gender: String, building: String) -> anyhow::Result<Vec<Section>>;
-    fn find_by_floor(&self, gender: String, building: String, floor: i32) -> anyhow::Result<Vec<Section>>;
+    fn find_by_floor(
+        &self,
+        gender: String,
+        building: String,
+        floor: i32,
+    ) -> anyhow::Result<Section>;
     fn find_all(&self) -> Vec<Section>;
     fn create(&self, section: CreateSection, info: SectionInfo) -> Section;
-    fn update(&self, id: i32, section: UpdateSection) -> anyhow::Result<Section>;
+    fn update(&self, section: UpdateSection) -> anyhow::Result<Section>;
     fn delete(&self, id: i32) -> anyhow::Result<()>;
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq)]
 pub struct Section {
     pub id: i32,
-    gender: String,
-    building: String,
-    floor: i32,
-    total: i32,
-    available: i32,
-    occupied: i32,
-    disabled: i32,
+    pub gender: String,
+    pub building: String,
+    pub floor: i32,
+    pub total: i32,
+    pub available: i32,
+    pub occupied: i32,
+    pub disabled: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
@@ -46,12 +51,13 @@ pub struct SectionInfo {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct CreateSection {
-    total: i32,
+    pub total: i32,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct UpdateSection {
-    id: i32,
-    status: String,
+    pub id: i32,
+    pub status: String,
 }
 
 pub struct Usage {
@@ -108,15 +114,61 @@ impl SectionRepository for InMemorySectionRepository {
     }
     fn find_by_gender(&self, gender: String) -> anyhow::Result<Vec<Section>> {
         let store = self.read_store_ref();
-        Ok(Vec::from_iter(store.values().filter(|section| section.gender == gender).cloned()))
+        let sections = Vec::from_iter(
+            store
+                .values()
+                .filter(|section| section.gender == gender)
+                .cloned(),
+        );
+
+        if sections.is_empty() {
+            Err(anyhow::Error::msg("No section found for the given gender"))
+        } else {
+            Ok(sections)
+        }
     }
     fn find_by_building(&self, gender: String, building: String) -> anyhow::Result<Vec<Section>> {
         let store = self.read_store_ref();
-        Ok(Vec::from_iter(store.values().filter(|section| section.gender == gender && section.building == building).cloned()))
+        let sections = Vec::from_iter(
+            store
+                .values()
+                .filter(|section| section.gender == gender && section.building == building)
+                .cloned(),
+        );
+
+        if sections.is_empty() {
+            Err(anyhow::Error::msg(
+                "No section found for the given gender or building",
+            ))
+        } else {
+            Ok(sections)
+        }
     }
-    fn find_by_floor(&self, gender: String, building: String, floor: i32) -> anyhow::Result<Vec<Section>> {
+    fn find_by_floor(
+        &self,
+        gender: String,
+        building: String,
+        floor: i32,
+    ) -> anyhow::Result<Section> {
         let store = self.read_store_ref();
-        Ok(Vec::from_iter(store.values().filter(|section| section.gender == gender && section.building == building && section.floor == floor).cloned()))
+        let sections = Vec::from_iter(
+            store
+                .values()
+                .filter(|section| {
+                    section.gender == gender
+                        && section.building == building
+                        && section.floor == floor
+                })
+                .cloned(),
+        );
+
+        if sections.is_empty() {
+            Err(anyhow::Error::msg(
+                "No section found for the given gender or building",
+            ))
+        } else {
+            Ok(sections.first().unwrap().clone())
+        }
     }
     fn find_all(&self) -> Vec<Section> {
         let store = self.read_store_ref();
@@ -129,14 +181,14 @@ impl SectionRepository for InMemorySectionRepository {
         store.insert(id, section.clone());
         section
     }
-    fn update(&self, id: i32, payload: UpdateSection) -> anyhow::Result<Section> {
+    fn update(&self, payload: UpdateSection) -> anyhow::Result<Section> {
         let mut store = self.write_store_ref();
         let section = store
             .get(&payload.id)
             .context(RepositoryError::NotFound(payload.id))?;
         let usage = switch_usage(payload.status, section.clone())?;
         let section = Section {
-            id,
+            id: payload.id,
             gender: section.gender.clone(),
             building: section.building.clone(),
             floor: section.floor,
@@ -212,7 +264,7 @@ mod tests {
             id: 1,
             status: "available".to_string(),
         };
-        let updated_section = repo.update(1, update_section).unwrap();
+        let updated_section = repo.update(update_section).unwrap();
         assert_eq!(updated_section.available, 11);
         assert_eq!(updated_section.occupied, -1);
 
@@ -221,7 +273,7 @@ mod tests {
             id: 1,
             status: "occupied".to_string(),
         };
-        let updated_section = repo.update(1, update_section).unwrap();
+        let updated_section = repo.update(update_section).unwrap();
         assert_eq!(updated_section.available, 10);
         assert_eq!(updated_section.occupied, 0);
 
