@@ -1,14 +1,14 @@
 mod handlers;
 mod repositories;
 
-use crate::repositories::section::{InMemorySectionRepository, SectionRepository};
+use crate::repositories::section::{models::{ CreateSection, SectionInfo}, traits::SectionRepository, in_memory::InMemorySectionRepository};
 use handlers::section::{
     create_section, handler_404, root, showerrooms_building, showerrooms_floor, showerrooms_gender,
-    update_section,
+    update_section, showerrooms_all,
 };
 
 use axum::{
-    routing::{get, post},
+    routing::{get, post, patch},
     Router,
 };
 use std::{env, net::SocketAddr, sync::Arc};
@@ -18,7 +18,7 @@ async fn main() {
     let log_level = env::var("RUST_LOG").unwrap_or("info".to_string());
     tracing_subscriber::fmt::init();
 
-    let repository = InMemorySectionRepository::new();
+    let repository = create_populated_repository().await;
     let app = create_app(repository);
     // add 404 handler
     let app = app.fallback(handler_404);
@@ -35,6 +35,7 @@ async fn main() {
 fn create_app<R: SectionRepository>(repository: R) -> Router {
     Router::new()
         .route("/", get(root))
+        .route("/showerrooms", get(showerrooms_all::<R>))
         .route("/:gender/showerrooms", get(showerrooms_gender::<R>))
         .route(
             "/:gender/:building/showerrooms",
@@ -49,9 +50,33 @@ fn create_app<R: SectionRepository>(repository: R) -> Router {
         .with_state(Arc::new(repository))
 }
 
+// utility function to create populated repository
+async fn create_populated_repository() -> InMemorySectionRepository {
+    let mut repository = InMemorySectionRepository::new();
+    let genders = vec!["male", "female"];
+    let buildings = vec!["A", "B", "C"];
+    let floors = vec![1, 2, 3, 4];
+
+    for gender in genders {
+        for building in &buildings {
+            for &floor in &floors {
+                let section_info = SectionInfo {
+                    gender: gender.to_string(),
+                    building: building.to_string(),
+                    floor,
+                };
+                let create_section = CreateSection { total: 5 };
+                repository.create(create_section, section_info).await.unwrap();
+            }
+        }
+    }
+
+    repository
+}
+
 #[cfg(test)]
-mod tests {
-    use crate::repositories::section::{CreateSection, Section, SectionInfo};
+mod unite_tests {
+    use crate::repositories::section::models::Section;
 
     use super::*;
     use axum::body::Body;
@@ -60,30 +85,6 @@ mod tests {
     use axum::http::StatusCode;
     use hyper::header;
     use tower::ServiceExt;
-
-    // utility function to create populated repository
-    fn create_populated_repository() -> InMemorySectionRepository {
-        let mut repository = InMemorySectionRepository::new();
-        let genders = vec!["male", "female"];
-        let buildings = vec!["A", "B", "C"];
-        let floors = vec![1, 2, 3, 4];
-
-        for gender in genders {
-            for building in &buildings {
-                for &floor in &floors {
-                    let section_info = SectionInfo {
-                        gender: gender.to_string(),
-                        building: building.to_string(),
-                        floor,
-                    };
-                    let create_section = CreateSection { total: 5 };
-                    repository.create(create_section, section_info);
-                }
-            }
-        }
-
-        repository
-    }
 
     #[tokio::test]
     async fn test_root() {
@@ -123,7 +124,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_showerrooms_gender() {
-        let repository = create_populated_repository();
+        let repository = create_populated_repository().await;
         let app = create_app(repository);
         let request = Request::builder()
             .method(Method::GET)
@@ -141,7 +142,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_showerrooms_building() {
-        let repository = create_populated_repository();
+        let repository = create_populated_repository().await;
         let app = create_app(repository);
         let request = Request::builder()
             .method(Method::GET)
@@ -159,7 +160,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_showerrooms_floor() {
-        let repository = create_populated_repository();
+        let repository = create_populated_repository().await;
         let app = create_app(repository);
         let request = Request::builder()
             .method(Method::GET)
@@ -177,11 +178,13 @@ mod tests {
         assert_eq!(body.gender, "female");
         assert_eq!(body.building, "C");
         assert_eq!(body.floor, 1);
+        assert_eq!(body.total, 5);
+        assert_eq!(body.available, 5);
     }
 
     #[tokio::test]
     async fn test_invalid_gender() {
-        let repository = create_populated_repository();
+        let repository = create_populated_repository().await;
         let app = create_app(repository);
         let request = Request::builder()
             .method(Method::GET)
@@ -194,7 +197,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_invalid_building() {
-        let repository = create_populated_repository();
+        let repository = create_populated_repository().await;
         let app = create_app(repository);
         let request = Request::builder()
             .method(Method::GET)
@@ -207,7 +210,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_invalid_floor() {
-        let repository = create_populated_repository();
+        let repository = create_populated_repository().await;
         let app = create_app(repository);
         let request = Request::builder()
             .method(Method::GET)
@@ -217,4 +220,32 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
+
+    #[tokio::test]
+    async fn test_update_section() {
+        let repository = create_populated_repository().await;
+        let app = create_app(repository);
+        let request_body = Body::from(r#""occupied""#);
+        let request = Request::builder()
+            .method(Method::PATCH)
+            .uri("/male/A/1/showerrooms")
+            .header(header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+            .body(request_body)
+            .unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+
+        // More detailed check on the response
+        let bytes = hyper::body::to_bytes(response.into_body()).await.unwrap();
+        let body: Section = serde_json::from_slice(&bytes).unwrap();
+
+        // Check if the returned section matches the expected gender, building, and floor
+        assert_eq!(body.gender, "male");
+        assert_eq!(body.building, "A");
+        assert_eq!(body.floor, 1);
+        assert_eq!(body.total, 5);
+        assert_eq!(body.available, 4);
+        assert_eq!(body.occupied, 1);
+    }
+
 }

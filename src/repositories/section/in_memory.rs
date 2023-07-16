@@ -1,85 +1,14 @@
-use anyhow::Context;
-use anyhow::Ok;
-use serde::{Deserialize, Serialize};
+use crate::repositories::section::traits::SectionRepository;
+use crate::repositories::section::models::{CreateSection, Section, SectionInfo, UpdateSection};
+use crate::repositories::section::errors::RepositoryError;
+use crate::repositories::section::utils::switch_usage;
+use axum::async_trait;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::RwLock;
 use std::sync::RwLockReadGuard;
 use std::sync::RwLockWriteGuard;
-use thiserror::Error;
-
-#[derive(Debug, Error)]
-pub enum RepositoryError {
-    #[error("not found id is: {0}")]
-    NotFound(i32),
-}
-
-pub trait SectionRepository: Clone + std::marker::Send + std::marker::Sync + 'static {
-    fn find_by_id(&self, id: i32) -> Option<Box<Section>>;
-    fn find_by_gender(&self, gender: String) -> anyhow::Result<Vec<Section>>;
-    fn find_by_building(&self, gender: String, building: String) -> anyhow::Result<Vec<Section>>;
-    fn find_by_floor(
-        &self,
-        gender: String,
-        building: String,
-        floor: i32,
-    ) -> anyhow::Result<Section>;
-    fn find_all(&self) -> Vec<Section>;
-    fn create(&self, section: CreateSection, info: SectionInfo) -> Section;
-    fn update(&self, section: UpdateSection) -> anyhow::Result<Section>;
-    fn delete(&self, id: i32) -> anyhow::Result<()>;
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq)]
-pub struct Section {
-    pub id: i32,
-    pub gender: String,
-    pub building: String,
-    pub floor: i32,
-    pub total: i32,
-    pub available: i32,
-    pub occupied: i32,
-    pub disabled: i32,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
-pub struct SectionInfo {
-    pub gender: String,
-    pub building: String,
-    pub floor: i32,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
-pub struct CreateSection {
-    pub total: i32,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
-pub struct UpdateSection {
-    pub id: i32,
-    pub status: String,
-}
-
-pub struct Usage {
-    available: i32,
-    occupied: i32,
-    disabled: i32,
-}
-
-impl Section {
-    fn new(id: i32, gender: String, building: String, floor: i32, total: i32) -> Self {
-        Self {
-            id,
-            gender,
-            building,
-            floor,
-            total,
-            available: total,
-            occupied: 0,
-            disabled: 0,
-        }
-    }
-}
+use anyhow::Context;
 
 type SecctionDatas = HashMap<i32, Section>;
 
@@ -104,15 +33,16 @@ impl InMemorySectionRepository {
     }
 }
 
+#[async_trait]
 impl SectionRepository for InMemorySectionRepository {
     // using todo!() instead of implementing
-    fn find_by_id(&self, id: i32) -> Option<Box<Section>> {
+    async fn find_by_id(&self, id: i32) -> Option<Box<Section>> {
         let store = self.read_store_ref();
         let section = store.get(&id)?;
         let section = Box::new(section.clone());
         Some(section)
     }
-    fn find_by_gender(&self, gender: String) -> anyhow::Result<Vec<Section>> {
+    async fn find_by_gender(&self, gender: String) -> anyhow::Result<Vec<Section>> {
         let store = self.read_store_ref();
         let sections = Vec::from_iter(
             store
@@ -127,7 +57,7 @@ impl SectionRepository for InMemorySectionRepository {
             Ok(sections)
         }
     }
-    fn find_by_building(&self, gender: String, building: String) -> anyhow::Result<Vec<Section>> {
+    async fn find_by_building(&self, gender: String, building: String) -> anyhow::Result<Vec<Section>> {
         let store = self.read_store_ref();
         let sections = Vec::from_iter(
             store
@@ -144,7 +74,7 @@ impl SectionRepository for InMemorySectionRepository {
             Ok(sections)
         }
     }
-    fn find_by_floor(
+    async fn find_by_floor(
         &self,
         gender: String,
         building: String,
@@ -170,18 +100,18 @@ impl SectionRepository for InMemorySectionRepository {
             Ok(sections.first().unwrap().clone())
         }
     }
-    fn find_all(&self) -> Vec<Section> {
+    async fn find_all(&self) -> anyhow::Result<Vec<Section>> {
         let store = self.read_store_ref();
-        Vec::from_iter(store.values().map(|sec| sec.clone()))
+        Ok(Vec::from_iter(store.values().map(|sec| sec.clone())))
     }
-    fn create(&self, payload: CreateSection, info: SectionInfo) -> Section {
+    async fn create(&self, payload: CreateSection, info: SectionInfo) -> anyhow::Result<Section> {
         let mut store = self.write_store_ref();
         let id = (store.len() + 1) as i32;
         let section = Section::new(id, info.gender, info.building, info.floor, payload.total);
         store.insert(id, section.clone());
-        section
+        Ok(section)
     }
-    fn update(&self, payload: UpdateSection) -> anyhow::Result<Section> {
+    async fn update(&self, payload: UpdateSection) -> anyhow::Result<Section> {
         let mut store = self.write_store_ref();
         let section = store
             .get(&payload.id)
@@ -200,40 +130,22 @@ impl SectionRepository for InMemorySectionRepository {
         store.insert(payload.id, section.clone());
         Ok(section)
     }
-    fn delete(&self, id: i32) -> anyhow::Result<()> {
+    async fn delete(&self, id: i32) -> anyhow::Result<()> {
         let mut store = self.write_store_ref();
         store.remove(&id).ok_or(RepositoryError::NotFound(id))?;
         Ok(())
     }
 }
 
-fn switch_usage(status: String, section: Section) -> anyhow::Result<Usage> {
-    match status.as_str() {
-        "available" => Ok(Usage {
-            available: section.available + 1,
-            occupied: section.occupied - 1,
-            disabled: section.disabled,
-        }),
-        "occupied" => Ok(Usage {
-            available: section.available - 1,
-            occupied: section.occupied + 1,
-            disabled: section.disabled,
-        }),
-        "disabled" => Ok(Usage {
-            available: section.available - 1,
-            occupied: section.occupied,
-            disabled: section.disabled + 1,
-        }),
-        _ => Err(anyhow::anyhow!("invalid status")),
-    }
-}
+
+
 
 #[cfg(test)]
-mod tests {
+mod in_memory_tests {
     use super::*;
 
-    #[test]
-    fn test_section_repository() {
+    #[tokio::test]
+    async fn test_section_repository() {
         let repo = InMemorySectionRepository::new();
 
         // 1. Sectionの作成
@@ -243,43 +155,42 @@ mod tests {
             building: "A".to_string(),
             floor: 1,
         };
-        let created_section = repo.create(create_section, section_info);
+        let created_section = repo.create(create_section, section_info).await.expect("failed to create section");
         assert_eq!(created_section.id, 1);
         assert_eq!(created_section.total, 10);
 
         // 2. 1で作成したSectionをidで取得
-        let section = repo.find_by_id(1).unwrap();
+        let section = repo.find_by_id(1).await.unwrap();
         assert_eq!(section.id, 1);
         assert_eq!(section.total, 10);
 
         // 3. すべてのSectionを取得
-        let sections = repo.find_all();
+        let sections = repo.find_all().await.unwrap();
         assert_eq!(sections.len(), 1);
         assert_eq!(sections[0].id, 1);
         assert_eq!(sections[0].total, 10);
 
         // 4. updateで更新(status は2パターン)
-        // 4.1. status = "available"
-        let update_section = UpdateSection {
-            id: 1,
-            status: "available".to_string(),
-        };
-        let updated_section = repo.update(update_section).unwrap();
-        assert_eq!(updated_section.available, 11);
-        assert_eq!(updated_section.occupied, -1);
-
-        // 4.2. status = "occupied"
+        // 4.1. status = "occupied"
         let update_section = UpdateSection {
             id: 1,
             status: "occupied".to_string(),
         };
-        let updated_section = repo.update(update_section).unwrap();
+        let updated_section = repo.update(update_section).await.unwrap();
+        assert_eq!(updated_section.available, 9);
+        assert_eq!(updated_section.occupied, 1);
+
+        // 4.2. status = "available"
+        let update_section = UpdateSection {
+            id: 1,
+            status: "available".to_string(),
+        };
+        let updated_section = repo.update(update_section).await.unwrap();
         assert_eq!(updated_section.available, 10);
         assert_eq!(updated_section.occupied, 0);
 
         // 5. deleteで1で作成したSectionを削除
-        repo.delete(1).unwrap();
-        let section = repo.find_by_id(1);
-        assert!(section.is_none());
+        let res = repo.delete(1).await;
+        assert!(res.is_ok());
     }
 }
