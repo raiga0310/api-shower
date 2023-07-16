@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq, sqlx::FromRow)]
 pub struct Section {
     pub id: i32,
     pub gender: String,
@@ -9,7 +9,7 @@ pub struct Section {
     pub total: i32,
     pub available: i32,
     pub occupied: i32,
-    pub disabled: i32,
+    pub disabled_rooms: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
@@ -33,7 +33,7 @@ pub struct UpdateSection {
 pub struct Usage {
     pub available: i32,
     pub occupied: i32,
-    pub disabled: i32,
+    pub disabled_rooms: i32,
 }
 
 impl Section {
@@ -46,7 +46,7 @@ impl Section {
             total,
             available: total,
             occupied: 0,
-            disabled: 0,
+            disabled_rooms: 0,
         }
     }
 }

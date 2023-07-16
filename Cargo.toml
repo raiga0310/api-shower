@@ -28,5 +28,5 @@ validator = { version = "0.16.1", features = ["derive"] }
 dotenv = "0.15.0"
 
 # database
-sqlx = { version = "0.6.3", features = ["runtime-tokio-native-tls", "postgres", "macros"] }
+sqlx = { version = "0.7.1", features = ["runtime-tokio-native-tls", "postgres", "macros"] }
 

@@ -36,11 +36,10 @@ impl InMemorySectionRepository {
 #[async_trait]
 impl SectionRepository for InMemorySectionRepository {
     // using todo!() instead of implementing
-    async fn find_by_id(&self, id: i32) -> Option<Box<Section>> {
+    async fn find_by_id(&self, id: i32) -> anyhow::Result<Section> {
         let store = self.read_store_ref();
-        let section = store.get(&id)?;
-        let section = Box::new(section.clone());
-        Some(section)
+        let section = store.get(&id).unwrap().clone();
+        Ok(section)
     }
     async fn find_by_gender(&self, gender: String) -> anyhow::Result<Vec<Section>> {
         let store = self.read_store_ref();
@@ -129,7 +128,7 @@ impl SectionRepository for InMemorySectionRepository {
             total: section.total,
             available: usage.available,
             occupied: usage.occupied,
-            disabled: usage.disabled,
+            disabled_rooms: usage.disabled_rooms,
         };
         store.insert(payload.id, section.clone());
         Ok(section)

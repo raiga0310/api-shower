@@ -7,7 +7,7 @@ pub fn switch_usage(status: String, section: Section) -> anyhow::Result<Usage> {
                 Ok(Usage {
                     available: section.available + 1,
                     occupied: section.occupied - 1,
-                    disabled: section.disabled,
+                    disabled_rooms: section.disabled_rooms,
                 })
             } else {
                 Err(anyhow::anyhow!("No more sections are occupied"))
@@ -18,7 +18,7 @@ pub fn switch_usage(status: String, section: Section) -> anyhow::Result<Usage> {
                 Ok(Usage {
                     available: section.available - 1,
                     occupied: section.occupied + 1,
-                    disabled: section.disabled,
+                    disabled_rooms: section.disabled_rooms,
                 })
             } else {
                 Err(anyhow::anyhow!("No more sections are available"))
@@ -29,7 +29,7 @@ pub fn switch_usage(status: String, section: Section) -> anyhow::Result<Usage> {
                 Ok(Usage {
                     available: section.available - 1,
                     occupied: section.occupied,
-                    disabled: section.disabled + 1,
+                    disabled_rooms: section.disabled_rooms + 1,
                 })
             } else {
                 Err(anyhow::anyhow!("No more sections are available to disable"))
