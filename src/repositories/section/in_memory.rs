@@ -1,14 +1,14 @@
-use crate::repositories::section::traits::SectionRepository;
-use crate::repositories::section::models::{CreateSection, Section, SectionInfo, UpdateSection};
 use crate::repositories::section::errors::RepositoryError;
+use crate::repositories::section::models::{CreateSection, Section, SectionInfo, UpdateSection};
+use crate::repositories::section::traits::SectionRepository;
 use crate::repositories::section::utils::switch_usage;
+use anyhow::Context;
 use axum::async_trait;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::RwLock;
 use std::sync::RwLockReadGuard;
 use std::sync::RwLockWriteGuard;
-use anyhow::Context;
 
 type SecctionDatas = HashMap<i32, Section>;
 
@@ -57,7 +57,11 @@ impl SectionRepository for InMemorySectionRepository {
             Ok(sections)
         }
     }
-    async fn find_by_building(&self, gender: String, building: String) -> anyhow::Result<Vec<Section>> {
+    async fn find_by_building(
+        &self,
+        gender: String,
+        building: String,
+    ) -> anyhow::Result<Vec<Section>> {
         let store = self.read_store_ref();
         let sections = Vec::from_iter(
             store
@@ -137,9 +141,6 @@ impl SectionRepository for InMemorySectionRepository {
     }
 }
 
-
-
-
 #[cfg(test)]
 mod in_memory_tests {
     use super::*;
@@ -155,7 +156,10 @@ mod in_memory_tests {
             building: "A".to_string(),
             floor: 1,
         };
-        let created_section = repo.create(create_section, section_info).await.expect("failed to create section");
+        let created_section = repo
+            .create(create_section, section_info)
+            .await
+            .expect("failed to create section");
         assert_eq!(created_section.id, 1);
         assert_eq!(created_section.total, 10);
 

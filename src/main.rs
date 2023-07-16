@@ -1,16 +1,24 @@
 mod handlers;
 mod repositories;
 
-use crate::repositories::section::{models::{ CreateSection, SectionInfo}, traits::SectionRepository, in_memory::InMemorySectionRepository};
+use crate::repositories::section::{
+    db::DBSectionRepository,
+    in_memory::InMemorySectionRepository,
+    models::{CreateSection, SectionInfo},
+    traits::SectionRepository,
+};
+
 use handlers::section::{
-    create_section, handler_404, root, showerrooms_building, showerrooms_floor, showerrooms_gender,
-    update_section, showerrooms_all,
+    create_section, handler_404, root, showerrooms_all, showerrooms_building, showerrooms_floor,
+    showerrooms_gender, update_section,
 };
 
 use axum::{
-    routing::{get, post, patch},
+    routing::{get, patch, post},
     Router,
 };
+use dotenv::dotenv;
+use sqlx::PgPool;
 use std::{env, net::SocketAddr, sync::Arc};
 
 #[tokio::main]
@@ -18,7 +26,16 @@ async fn main() {
     let log_level = env::var("RUST_LOG").unwrap_or("info".to_string());
     tracing_subscriber::fmt::init();
 
-    let repository = create_populated_repository().await;
+    dotenv().ok();
+
+    let database_url = &env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let (tx, rx) = tokio::sync::oneshot::channel::<()>();
+
+    tracing::info!("Starting server at: {}", database_url);
+    let pool = PgPool::connect(database_url)
+        .await
+        .expect(&format!("Failed to connect to {}", database_url));
+    let repository = DBSectionRepository::new(pool.clone());
     let app = create_app(repository);
     // add 404 handler
     let app = app.fallback(handler_404);
@@ -26,10 +43,17 @@ async fn main() {
     tracing::info!("mode: {}", log_level);
     tracing::debug!("Listening on {}", addr);
 
-    axum::Server::bind(&addr)
+    let graceful = axum::Server::bind(&addr)
         .serve(app.into_make_service())
-        .await
-        .unwrap();
+        .with_graceful_shutdown(async {
+            rx.await.ok();
+        });
+
+    if let Err(e) = graceful.await {
+        tracing::error!("server error: {}", e);
+    }
+
+    let _ = tx.send(());
 }
 
 fn create_app<R: SectionRepository>(repository: R) -> Router {
@@ -66,7 +90,10 @@ async fn create_populated_repository() -> InMemorySectionRepository {
                     floor,
                 };
                 let create_section = CreateSection { total: 5 };
-                repository.create(create_section, section_info).await.unwrap();
+                repository
+                    .create(create_section, section_info)
+                    .await
+                    .unwrap();
             }
         }
     }
@@ -247,5 +274,4 @@ mod unite_tests {
         assert_eq!(body.available, 4);
         assert_eq!(body.occupied, 1);
     }
-
 }

@@ -6,9 +6,9 @@ use axum::{
 };
 use std::sync::Arc;
 
-use crate::repositories::section::{models::{
-    CreateSection, SectionInfo, UpdateSection,
-}, traits::SectionRepository
+use crate::repositories::section::{
+    models::{CreateSection, SectionInfo, UpdateSection},
+    traits::SectionRepository,
 };
 
 pub async fn handler_404() -> impl IntoResponse {
@@ -25,7 +25,6 @@ pub async fn showerrooms_all<R: SectionRepository>(
     let sections = repository.find_all().await.unwrap();
     Ok((StatusCode::OK, Json(sections)))
 }
-
 
 pub async fn showerrooms_gender<R: SectionRepository>(
     Path(gender): Path<String>,

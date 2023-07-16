@@ -1,12 +1,15 @@
 use crate::repositories::section::models::{CreateSection, Section, SectionInfo, UpdateSection};
 use axum::async_trait;
 
-
 #[async_trait]
 pub trait SectionRepository: Clone + std::marker::Send + std::marker::Sync + 'static {
-    async fn find_by_id(&self, id: i32) -> Option<Box<Section>>;
+    async fn find_by_id(&self, id: i32) -> anyhow::Result<Section>;
     async fn find_by_gender(&self, gender: String) -> anyhow::Result<Vec<Section>>;
-    async fn find_by_building(&self, gender: String, building: String) -> anyhow::Result<Vec<Section>>;
+    async fn find_by_building(
+        &self,
+        gender: String,
+        building: String,
+    ) -> anyhow::Result<Vec<Section>>;
     async fn find_by_floor(
         &self,
         gender: String,
