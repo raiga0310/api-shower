@@ -1,4 +1,5 @@
 use anyhow::Context;
+use anyhow::Ok;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -15,13 +16,16 @@ pub enum RepositoryError {
 
 pub trait SectionRepository: Clone + std::marker::Send + std::marker::Sync + 'static {
     fn find_by_id(&self, id: i32) -> Option<Box<Section>>;
+    fn find_by_gender(&self, gender: String) -> anyhow::Result<Vec<Section>>;
+    fn find_by_building(&self, gender: String, building: String) -> anyhow::Result<Vec<Section>>;
+    fn find_by_floor(&self, gender: String, building: String, floor: i32) -> anyhow::Result<Vec<Section>>;
     fn find_all(&self) -> Vec<Section>;
     fn create(&self, section: CreateSection, info: SectionInfo) -> Section;
     fn update(&self, id: i32, section: UpdateSection) -> anyhow::Result<Section>;
     fn delete(&self, id: i32) -> anyhow::Result<()>;
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq)]
 pub struct Section {
     pub id: i32,
     gender: String,
@@ -101,6 +105,18 @@ impl SectionRepository for InMemorySectionRepository {
         let section = store.get(&id)?;
         let section = Box::new(section.clone());
         Some(section)
+    }
+    fn find_by_gender(&self, gender: String) -> anyhow::Result<Vec<Section>> {
+        let store = self.read_store_ref();
+        Ok(Vec::from_iter(store.values().filter(|section| section.gender == gender).cloned()))
+    }
+    fn find_by_building(&self, gender: String, building: String) -> anyhow::Result<Vec<Section>> {
+        let store = self.read_store_ref();
+        Ok(Vec::from_iter(store.values().filter(|section| section.gender == gender && section.building == building).cloned()))
+    }
+    fn find_by_floor(&self, gender: String, building: String, floor: i32) -> anyhow::Result<Vec<Section>> {
+        let store = self.read_store_ref();
+        Ok(Vec::from_iter(store.values().filter(|section| section.gender == gender && section.building == building && section.floor == floor).cloned()))
     }
     fn find_all(&self) -> Vec<Section> {
         let store = self.read_store_ref();
