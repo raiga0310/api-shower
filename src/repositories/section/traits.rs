@@ -15,7 +15,7 @@ pub trait SectionRepository: Clone + std::marker::Send + std::marker::Sync + 'st
         gender: String,
         building: String,
         floor: i32,
-    ) -> anyhow::Result<Section>;
+    ) -> anyhow::Result<Vec<Section>>;
     async fn find_all(&self) -> anyhow::Result<Vec<Section>>;
     async fn create(&self, section: CreateSection, info: SectionInfo) -> anyhow::Result<Section>;
     async fn update(&self, section: UpdateSection) -> anyhow::Result<Section>;

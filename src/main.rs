@@ -18,6 +18,8 @@ use axum::{
     Router,
 };
 use dotenv::dotenv;
+use hyper::{header, http::HeaderValue};
+use tower_http::cors::{CorsLayer, Any};
 use sqlx::PgPool;
 use std::{env, net::SocketAddr, sync::Arc};
 
@@ -72,33 +74,12 @@ fn create_app<R: SectionRepository>(repository: R) -> Router {
                 .patch(update_section::<R>),
         )
         .with_state(Arc::new(repository))
-}
-
-// utility function to create populated repository
-async fn create_populated_repository() -> InMemorySectionRepository {
-    let mut repository = InMemorySectionRepository::new();
-    let genders = vec!["male", "female"];
-    let buildings = vec!["A", "B", "C"];
-    let floors = vec![1, 2, 3, 4];
-
-    for gender in genders {
-        for building in &buildings {
-            for &floor in &floors {
-                let section_info = SectionInfo {
-                    gender: gender.to_string(),
-                    building: building.to_string(),
-                    floor,
-                };
-                let create_section = CreateSection { total: 5 };
-                repository
-                    .create(create_section, section_info)
-                    .await
-                    .unwrap();
-            }
-        }
-    }
-
-    repository
+        .layer(
+            CorsLayer::new()
+                .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
+                .allow_methods(Any)
+                .allow_headers(vec![header::CONTENT_TYPE, header::ACCEPT])
+        )
 }
 
 #[cfg(test)]
@@ -112,6 +93,33 @@ mod unite_tests {
     use axum::http::StatusCode;
     use hyper::header;
     use tower::ServiceExt;
+
+    // utility function to create populated repository
+    async fn create_populated_repository() -> InMemorySectionRepository {
+        let mut repository = InMemorySectionRepository::new();
+        let genders = vec!["male", "female"];
+        let buildings = vec!["A", "B", "C"];
+        let floors = vec![1, 2, 3, 4];
+
+        for gender in genders {
+            for building in &buildings {
+                for &floor in &floors {
+                    let section_info = SectionInfo {
+                        gender: gender.to_string(),
+                        building: building.to_string(),
+                        floor,
+                    };
+                    let create_section = CreateSection { total: 5 };
+                    repository
+                        .create(create_section, section_info)
+                        .await
+                        .unwrap();
+                }
+            }
+        }
+
+        repository
+    }
 
     #[tokio::test]
     async fn test_root() {

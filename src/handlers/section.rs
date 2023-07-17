@@ -85,6 +85,8 @@ pub async fn update_section<R: SectionRepository>(
         .find_by_floor(gender, building, floor)
         .await
         .unwrap()
+        .first()
+        .unwrap()
         .id;
     let section = UpdateSection {
         id,

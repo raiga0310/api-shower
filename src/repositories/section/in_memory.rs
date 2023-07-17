@@ -82,7 +82,7 @@ impl SectionRepository for InMemorySectionRepository {
         gender: String,
         building: String,
         floor: i32,
-    ) -> anyhow::Result<Section> {
+    ) -> anyhow::Result<Vec<Section>> {
         let store = self.read_store_ref();
         let sections = Vec::from_iter(
             store
@@ -100,7 +100,7 @@ impl SectionRepository for InMemorySectionRepository {
                 "No section found for the given gender or building",
             ))
         } else {
-            Ok(sections.first().unwrap().clone())
+            Ok(sections.clone())
         }
     }
     async fn find_all(&self) -> anyhow::Result<Vec<Section>> {

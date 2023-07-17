@@ -26,7 +26,7 @@ impl SectionRepository for DBSectionRepository {
     }
 
     async fn find_by_gender(&self, gender: String) -> anyhow::Result<Vec<Section>> {
-        let sections = sqlx::query_as::<_, Section>("SELECT * FROM sections WHERE gender = $1")
+        let sections = sqlx::query_as::<_, Section>("SELECT * FROM sections WHERE gender = $1 order by id asc")
             .bind(gender)
             .fetch_all(&self.pool)
             .await?;
@@ -39,7 +39,7 @@ impl SectionRepository for DBSectionRepository {
         building: String,
     ) -> anyhow::Result<Vec<Section>> {
         let sections = sqlx::query_as::<_, Section>(
-            "SELECT * FROM sections WHERE gender = $1 AND building = $2",
+            "SELECT * FROM sections WHERE gender = $1 AND building = $2 order by id asc",
         )
         .bind(gender)
         .bind(building)
@@ -53,7 +53,7 @@ impl SectionRepository for DBSectionRepository {
         gender: String,
         building: String,
         floor: i32,
-    ) -> anyhow::Result<Section> {
+    ) -> anyhow::Result<Vec<Section>> {
         let sections = sqlx::query_as::<_, Section>(
             "SELECT * FROM sections WHERE gender = $1 AND building = $2 AND floor = $3",
         )
@@ -62,11 +62,11 @@ impl SectionRepository for DBSectionRepository {
         .bind(floor)
         .fetch_one(&self.pool)
         .await?;
-        Ok(sections)
+        Ok(vec![sections])
     }
 
     async fn find_all(&self) -> anyhow::Result<Vec<Section>> {
-        let sections = sqlx::query_as::<_, Section>("SELECT * FROM sections")
+        let sections = sqlx::query_as::<_, Section>("SELECT * FROM sections order by id asc")
             .fetch_all(&self.pool)
             .await?;
         Ok(sections)
@@ -180,11 +180,11 @@ mod tests {
     async fn test_find_by_floor() -> Result<()> {
         let repository = setup().await?;
 
-        let section = repository
+        let sections = repository
             .find_by_floor("male".to_string(), "A".to_string(), 1)
             .await?;
         // Assert based on your known test data
-        assert_eq!(section.floor, 1);
+        assert_eq!(sections[0].floor, 1);
 
         Ok(())
     }
