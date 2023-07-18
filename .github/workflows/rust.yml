@@ -24,35 +24,30 @@ jobs:
         compose-file: "./docker-compose.yml"
     - name: Build and run Docker Compose Service
       run: docker-compose up -d
+
     # Setup Rust (using database)
     - name: Add sqlx
       run: cargo install sqlx-cli --no-default-features --features postgres
     - name: Database migration
       run: sqlx db create; sqlx migrate run
-    # Build and test
-    - name: Build
-      run: cargo build --verbose
-    - name: setup grcov
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: nightly
-        override: true
-    - name: Run tests
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
-        args: --all-features --verbose --no-fail-fast
-      env:
-        CARGO_INCREMENTAL: '0'
-        RUSTFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
-        RUSTDOCFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
-    # Report coverage from Codecov
-    - name: rust-grcov
-      uses: actions-rs/grcov@v0.1.5
-    - name: Codecov report
+    # Setup Rust (Coverage)
+    - name: install grcov
+      run: cargo install grcov
+    - name: Generate coverage report
+      run: |
+        export CARGO_INCREMENTAL=0
+        export RUSTFLAGS="-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Zno-landing-pads"
+        cargo build --verbose
+        cargo test --verbose
+        zip -0 ccov.zip `find . \( -name "rusty_money*.gc*" \) -print`;
+        grcov ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore "/*" -o lcov.info;
+    - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3.1.0
       with:
+        files: lcov.info
+        fail_ci_if_error: true
         token: ${{ secrets.CODECOV_TOKEN }}
+
     # Shut down Docker Compose (Clean up)
     - name: Shut down Docker Compose services
       run: docker-compose down
