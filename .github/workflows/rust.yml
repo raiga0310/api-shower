@@ -38,6 +38,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Database migration
+      run: sqlx db create; sqlx migrate run
     - name: Run tests
       run: cargo test --verbose
     - name: Upload coverage reports to Codecov
