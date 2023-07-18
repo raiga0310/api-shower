@@ -41,7 +41,7 @@ jobs:
         export RUSTFLAGS="-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off"
         cargo build --verbose
         cargo test --verbose
-        zip -0 ccov.zip `find . \( -name "rusty_money*.gc*" \) -print`;
+        zip -0 ccov.zip `find . \( -name "*.gc*" \) -print`;
         grcov ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore "/*" -o lcov.info;
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3.1.0
