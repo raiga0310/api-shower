@@ -39,10 +39,17 @@ sqlx db create
 sqlx migrate run
 ```
 
-6. Run the server / サーバーを起動する
+6. Set Environment Variables / 環境変数を設定する
+```bash
+echo "DATABASE_URL=postgres://user:password@localhost:5432/shower" > .env
+```
+
+7. Run the server / サーバーを起動する
 ```bash
 cargo run
 ```
 
 ## Usage / 使い方
 
+クライアント
+[front-shower](https://github.com/raiga0310/front-shower)
