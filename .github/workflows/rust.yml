@@ -26,6 +26,8 @@ jobs:
       run: docker-compose up -d
 
     # Setup Rust (using database)
+    - name: set nightly toolchain
+      run: rustup toolchain install nightly
     - name: Add sqlx
       run: cargo install sqlx-cli --no-default-features --features postgres
     - name: Database migration
@@ -33,8 +35,6 @@ jobs:
     # Setup Rust (Coverage)
     - name: install grcov
       run: cargo install grcov
-    - name: set nightly toolchain
-      run: rustup toolchain install nightly
     - name: Generate coverage report
       run: |
         export CARGO_INCREMENTAL=0
