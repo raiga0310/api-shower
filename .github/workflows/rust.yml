@@ -27,7 +27,7 @@ jobs:
 
     # Setup Rust (using database)
     - name: set nightly toolchain
-      run: rustup toolchain install nightly
+      run: rustup toolchain install nightly && rustup default nightly
     - name: Add sqlx
       run: cargo install sqlx-cli --no-default-features --features postgres
     - name: Database migration
