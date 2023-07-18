@@ -1,8 +1,6 @@
 # ShowerTime API
 
-[![Rust](https://github.com/raiga0310/api-shower/actions/workflows/rust.yml/badge.svg?branch=main)](https://github.com/raiga0310/api-shower/actions/workflows/rust.yml)
-
-[![codecov](https://codecov.io/github/raiga0310/api-shower/branch/main/graph/badge.svg?token=3YERKCDNF1)](https://codecov.io/github/raiga0310/api-shower)
+[![Rust](https://github.com/raiga0310/api-shower/actions/workflows/rust.yml/badge.svg?branch=main)](https://github.com/raiga0310/api-shower/actions/workflows/rust.yml) [![codecov](https://codecov.io/github/raiga0310/api-shower/branch/main/graph/badge.svg?token=3YERKCDNF1)](https://codecov.io/github/raiga0310/api-shower) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Environment / 環境
 
