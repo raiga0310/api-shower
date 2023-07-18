@@ -11,7 +11,7 @@ env:
   DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
 jobs:
-  build:
+  setup:
 
     runs-on: ubuntu-latest
 
@@ -23,14 +23,31 @@ jobs:
         compose-file: "./docker-compose.yml"
     - name: Build and run Docker Compose Service
       run: docker-compose up -d
+
+  build:
+    needs: setup
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Add sqlx
+      run: cargo install sqlx-cli --no-default-features --features postgres
     - name: Build
       run: cargo build --verbose
+  tests:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
     - name: Run tests
       run: cargo test --verbose
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+  cleanup:
+    needs: setup
+    runs-on: ubuntu-latest     
 
+    steps:
     - name: Shut down Docker Compose services
       run: docker-compose down
