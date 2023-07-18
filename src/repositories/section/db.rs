@@ -26,10 +26,12 @@ impl SectionRepository for DBSectionRepository {
     }
 
     async fn find_by_gender(&self, gender: String) -> anyhow::Result<Vec<Section>> {
-        let sections = sqlx::query_as::<_, Section>("SELECT * FROM sections WHERE gender = $1 order by id asc")
-            .bind(gender)
-            .fetch_all(&self.pool)
-            .await?;
+        let sections = sqlx::query_as::<_, Section>(
+            "SELECT * FROM sections WHERE gender = $1 order by id asc",
+        )
+        .bind(gender)
+        .fetch_all(&self.pool)
+        .await?;
         Ok(sections)
     }
 
@@ -94,12 +96,10 @@ impl SectionRepository for DBSectionRepository {
             "disabled" => "update sections set disabled_rooms = disabled_rooms + 1, available = available - 1 where id = $1 returning *",
             _ => "",
         };
-        let section = sqlx::query_as::<_, Section>(
-            query,
-        )
-        .bind(section.id)
-        .fetch_one(&self.pool)
-        .await?;
+        let section = sqlx::query_as::<_, Section>(query)
+            .bind(section.id)
+            .fetch_one(&self.pool)
+            .await?;
 
         let section = self.find_by_id(section.id).await?;
         Ok(section)

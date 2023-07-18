@@ -1,25 +1,19 @@
 mod handlers;
 mod repositories;
 
-use crate::repositories::section::{
-    db::DBSectionRepository,
-    traits::SectionRepository,
-};
+use crate::repositories::section::{db::DBSectionRepository, traits::SectionRepository};
 
 use handlers::section::{
     create_section, handler_404, root, showerrooms_all, showerrooms_building, showerrooms_floor,
     showerrooms_gender, update_section,
 };
 
-use axum::{
-    routing::get,
-    Router,
-};
+use axum::{routing::get, Router};
 use dotenv::dotenv;
 use hyper::{header, http::HeaderValue};
-use tower_http::cors::{CorsLayer, Any};
 use sqlx::PgPool;
 use std::{env, net::SocketAddr, sync::Arc};
+use tower_http::cors::{Any, CorsLayer};
 
 #[tokio::main]
 async fn main() {
@@ -76,14 +70,14 @@ fn create_app<R: SectionRepository>(repository: R) -> Router {
             CorsLayer::new()
                 .allow_origin("http://localhost:5173".parse::<HeaderValue>().unwrap())
                 .allow_methods(Any)
-                .allow_headers(vec![header::CONTENT_TYPE, header::ACCEPT])
+                .allow_headers(vec![header::CONTENT_TYPE, header::ACCEPT]),
         )
 }
 
 #[cfg(test)]
 mod unite_tests {
-    use crate::repositories::section::models::{Section, SectionInfo, CreateSection};
     use crate::repositories::section::in_memory::InMemorySectionRepository;
+    use crate::repositories::section::models::{CreateSection, Section, SectionInfo};
 
     use super::*;
     use axum::body::Body;
@@ -95,7 +89,9 @@ mod unite_tests {
 
     // utility function to create populated repository
     async fn create_populated_repository() -> InMemorySectionRepository {
-        let repository = InMemorySectionRepository { store : Arc::default() };
+        let repository = InMemorySectionRepository {
+            store: Arc::default(),
+        };
         let genders = vec!["male", "female"];
         let buildings = vec!["A", "B", "C"];
         let floors = vec![1, 2, 3, 4];
@@ -122,7 +118,9 @@ mod unite_tests {
 
     #[tokio::test]
     async fn test_root() {
-        let repository = InMemorySectionRepository { store : Arc::default() };
+        let repository = InMemorySectionRepository {
+            store: Arc::default(),
+        };
         let app = create_app(repository);
         let request = Request::builder()
             .method(Method::GET)
@@ -139,7 +137,9 @@ mod unite_tests {
     // post section test case
     #[tokio::test]
     async fn should_return_section_data() {
-        let repository = InMemorySectionRepository { store : Arc::default() };
+        let repository = InMemorySectionRepository {
+            store: Arc::default(),
+        };
         let app = create_app(repository);
         let request_body = Body::from(r#"{"total": 10}"#);
         let request = Request::builder()
@@ -206,7 +206,8 @@ mod unite_tests {
 
         // More detailed check on the response
         let bytes = hyper::body::to_bytes(response.into_body()).await.unwrap();
-        let body: Section = serde_json::from_slice(&bytes).unwrap();
+        let result: Vec<Section> = serde_json::from_slice(&bytes).unwrap();
+        let body = &result[0];
 
         // Check if the returned section matches the expected gender, building, and floor
         assert_eq!(body.gender, "female");
