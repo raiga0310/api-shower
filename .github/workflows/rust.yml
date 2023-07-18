@@ -16,6 +16,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v2
+    - name: Set up Docker Compose
+      uses: docker/compose-action@v1.4.1
+    - name: Build and run Docker Compose Service
+      run: docker-compose up -d
+
     - name: Build
       run: cargo build --verbose
     - name: Run tests
@@ -24,3 +31,6 @@ jobs:
       uses: codecov/codecov-action@v3
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Shut down Docker Compose services
+      run: docker-compose down
