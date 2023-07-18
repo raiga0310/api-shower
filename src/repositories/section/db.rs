@@ -88,21 +88,12 @@ impl SectionRepository for DBSectionRepository {
     }
 
     async fn update(&self, section: UpdateSection) -> anyhow::Result<Section> {
-        let mut query = "";
-        match section.status.as_str() {
-            "available" => {
-                query = "update sections set available = available + 1, occupied = occupied - 1 where id = $1 returning *";
-            }
-            "occupied" => {
-                query = "update sections set available = available - 1, occupied = occupied + 1 where id = $1 returning *";
-            }
-            "disabled" => {
-                query = "update sections set disabled_rooms = disabled_rooms + 1, available = available - 1 where id = $1 returning *";
-            }
-            _ => {
-                query = "";
-            }
-        }
+        let query = match section.status.as_str() {
+            "available" => "update sections set available = available + 1, occupied = occupied - 1 where id = $1 returning *",
+            "occupied" => "update sections set available = available - 1, occupied = occupied + 1 where id = $1 returning *",
+            "disabled" => "update sections set disabled_rooms = disabled_rooms + 1, available = available - 1 where id = $1 returning *",
+            _ => "",
+        };
         let section = sqlx::query_as::<_, Section>(
             query,
         )
@@ -126,7 +117,7 @@ impl SectionRepository for DBSectionRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::repositories::section::models::{CreateSection, SectionInfo, UpdateSection};
+    use crate::repositories::section::models::UpdateSection;
     use crate::repositories::section::traits::SectionRepository;
     use anyhow::Result;
     use dotenv::dotenv;

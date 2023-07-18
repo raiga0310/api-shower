@@ -14,15 +14,10 @@ type SecctionDatas = HashMap<i32, Section>;
 
 #[derive(Clone, Debug)]
 pub struct InMemorySectionRepository {
-    store: Arc<RwLock<SecctionDatas>>,
+    pub store: Arc<RwLock<SecctionDatas>>,
 }
 
 impl InMemorySectionRepository {
-    pub fn new() -> Self {
-        Self {
-            store: Arc::default(),
-        }
-    }
 
     pub fn write_store_ref(&self) -> RwLockWriteGuard<SecctionDatas> {
         self.store.write().unwrap()
@@ -146,7 +141,7 @@ mod in_memory_tests {
 
     #[tokio::test]
     async fn test_section_repository() {
-        let repo = InMemorySectionRepository::new();
+        let repo = InMemorySectionRepository { store: Arc::default() };
 
         // 1. Sectionの作成
         let create_section = CreateSection { total: 10 };

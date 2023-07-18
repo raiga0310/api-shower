@@ -3,8 +3,6 @@ mod repositories;
 
 use crate::repositories::section::{
     db::DBSectionRepository,
-    in_memory::InMemorySectionRepository,
-    models::{CreateSection, SectionInfo},
     traits::SectionRepository,
 };
 
@@ -14,7 +12,7 @@ use handlers::section::{
 };
 
 use axum::{
-    routing::{get, patch, post},
+    routing::get,
     Router,
 };
 use dotenv::dotenv;
@@ -84,7 +82,8 @@ fn create_app<R: SectionRepository>(repository: R) -> Router {
 
 #[cfg(test)]
 mod unite_tests {
-    use crate::repositories::section::models::Section;
+    use crate::repositories::section::models::{Section, SectionInfo, CreateSection};
+    use crate::repositories::section::in_memory::InMemorySectionRepository;
 
     use super::*;
     use axum::body::Body;
@@ -96,7 +95,7 @@ mod unite_tests {
 
     // utility function to create populated repository
     async fn create_populated_repository() -> InMemorySectionRepository {
-        let mut repository = InMemorySectionRepository::new();
+        let repository = InMemorySectionRepository { store : Arc::default() };
         let genders = vec!["male", "female"];
         let buildings = vec!["A", "B", "C"];
         let floors = vec![1, 2, 3, 4];
@@ -123,7 +122,7 @@ mod unite_tests {
 
     #[tokio::test]
     async fn test_root() {
-        let repository = InMemorySectionRepository::new();
+        let repository = InMemorySectionRepository { store : Arc::default() };
         let app = create_app(repository);
         let request = Request::builder()
             .method(Method::GET)
@@ -140,7 +139,7 @@ mod unite_tests {
     // post section test case
     #[tokio::test]
     async fn should_return_section_data() {
-        let repository = InMemorySectionRepository::new();
+        let repository = InMemorySectionRepository { store : Arc::default() };
         let app = create_app(repository);
         let request_body = Body::from(r#"{"total": 10}"#);
         let request = Request::builder()
