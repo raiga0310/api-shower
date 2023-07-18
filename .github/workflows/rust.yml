@@ -33,6 +33,8 @@ jobs:
     # Setup Rust (Coverage)
     - name: install grcov
       run: cargo install grcov
+    - name: set nightly toolchain
+      run: rustup toolchain install nightly
     - name: Generate coverage report
       run: |
         export CARGO_INCREMENTAL=0
