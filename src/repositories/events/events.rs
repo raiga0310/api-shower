@@ -21,8 +21,44 @@ impl Events {
         rx
     }
 
-    pub async fn notify(&self, msg: String) {
+    pub async fn notify(&self, msg: String) -> anyhow::Result<()> {
         let mut clients = self.clients.lock().await;
         clients.retain(|_, sender| sender.send(msg.clone()).is_ok());
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod events_test {
+    use super::*;
+    use tokio::runtime::Runtime;
+
+    #[tokio::test]
+    async fn test_new() {
+        let events = Events::new();
+        assert_eq!(events.clients.lock().await.len(), 0);
+        assert_eq!(events.last_id.load(Ordering::SeqCst), 0);
+    }
+
+    #[test]
+    fn test_subscribe() {
+        let events = Events::new();
+        let rt = Runtime::new().unwrap();
+        rt.block_on(async {
+            events.subscribe().await;
+            assert_eq!(events.clients.lock().await.len(), 1);
+            assert_eq!(events.last_id.load(Ordering::SeqCst), 1);
+        });
+    }
+
+    #[test]
+    fn test_notify() {
+        let events = Events::new();
+        let rt = Runtime::new().unwrap();
+        rt.block_on(async {
+            let mut rx = events.subscribe().await;
+            events.notify("test".to_string()).await.unwrap();
+            assert_eq!(rx.recv().await.unwrap(), "test");
+        });
     }
 }
