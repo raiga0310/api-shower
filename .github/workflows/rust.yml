@@ -52,7 +52,9 @@ jobs:
     - name: set nightly toolchain
       run: rustup toolchain install nightly && rustup default nightly
     - name: Add sqlx
-      run: cargo install sqlx-cli --no-default-features --features postgres
+      uses: baptiste0928/cargo-install@v2
+      with:
+        crate: sqlx-cli
     - name: Database migration
       run: sqlx db create; sqlx migrate run
     # Setup Rust (Coverage)
