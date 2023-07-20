@@ -6,10 +6,10 @@ use axum::{
 };
 use std::sync::Arc;
 
-use crate::repositories::section::{
+use crate::{repositories::{section::{
     models::{CreateSection, SectionInfo, UpdateSection},
     traits::SectionRepository,
-};
+}, events::traits::EventTrait}, EVENTS};
 
 pub async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "nothing to here")
@@ -82,7 +82,7 @@ pub async fn update_section<R: SectionRepository>(
 ) -> Result<impl IntoResponse, StatusCode> {
     // first get the id of the section
     let id = repository
-        .find_by_floor(gender, building, floor)
+        .find_by_floor(gender.clone(), building.clone(), floor)
         .await
         .unwrap()
         .first()
@@ -93,6 +93,11 @@ pub async fn update_section<R: SectionRepository>(
         status: payload,
     };
     let section = repository.update(section).await.unwrap();
+
+    // if section update is successful, notify the event
+    let events = Arc::clone(&EVENTS);
+    let msg = format!("{}/{}/{}", gender, building, floor);
+    events.notify(msg).await.unwrap();
 
     Ok((StatusCode::OK, Json(section)))
 }

@@ -1,12 +1,12 @@
 mod handlers;
 mod repositories;
 
-use crate::repositories::section::{db::DBSectionRepository, traits::SectionRepository};
+use crate::repositories::{section::{db::DBSectionRepository, traits::SectionRepository}, events::models::Events};
 
-use handlers::section::{
+use handlers::{section::{
     create_section, handler_404, root, showerrooms_all, showerrooms_building, showerrooms_floor,
     showerrooms_gender, update_section,
-};
+}, events::server_sents_events};
 
 use axum::{routing::get, Router};
 use dotenv::dotenv;
@@ -14,6 +14,8 @@ use hyper::{header, http::HeaderValue};
 use sqlx::PgPool;
 use std::{env, net::SocketAddr, sync::Arc};
 use tower_http::cors::{Any, CorsLayer};
+
+static EVENTS: once_cell::sync::Lazy<Arc<Events>> = once_cell::sync::Lazy::new(|| Arc::new(Events::new()));
 
 #[tokio::main]
 async fn main() {
@@ -30,6 +32,7 @@ async fn main() {
         .await
         .expect(&format!("Failed to connect to {}", database_url));
     let repository = DBSectionRepository::new(pool.clone());
+
     let app = create_app(repository);
     // add 404 handler
     let app = app.fallback(handler_404);
@@ -58,6 +61,12 @@ fn create_app<R: SectionRepository>(repository: R) -> Router {
         .route(
             "/:gender/:building/showerrooms",
             get(showerrooms_building::<R>),
+        )
+        .route(
+            "/events", get({
+                let events = Arc::clone(&EVENTS);
+                move || server_sents_events(Arc::clone(&events))
+            })
         )
         .route(
             "/:gender/:building/:floor/showerrooms",
