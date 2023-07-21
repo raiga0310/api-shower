@@ -36,7 +36,8 @@ async fn main() {
     let app = create_app(repository);
     // add 404 handler
     let app = app.fallback(handler_404);
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    //let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     tracing::info!("mode: {}", log_level);
     tracing::debug!("Listening on {}", addr);
 

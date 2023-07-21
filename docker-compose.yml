@@ -1,14 +1,29 @@
 version: "3.8"
 services:
+  api:
+    build:
+      context: .
+      dockerfile: api.Dockerfile
+      target: api
+      args:
+        DATABASE_URL: postgres://admin:admin@database:5432/showerrooms
+    environment:
+      - DATABASE_URL=postgres://admin:admin@database:5432/showerrooms
+    ports:
+      - 3000:3000
+    expose:
+      - "3000"
+    depends_on:
+      - database
   database:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: db.Dockerfile
       target: 'database'
     ports:
       - 5432:5432
     volumes:
-      - pgdate:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     environment:
       POSTGRES_PASSWORD: admin
       POSTGRES_USER: admin
@@ -16,4 +31,4 @@ services:
       TZ: Asia/Tokyo
     restart: always
 volumes:
-  pgdate:
+  pgdata: {}
