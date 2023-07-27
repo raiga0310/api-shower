@@ -25,6 +25,7 @@ FROM debian:bullseye-slim as api
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /api-shower/target/release/api-shower /usr/local/bin/api-shower

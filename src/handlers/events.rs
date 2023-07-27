@@ -13,6 +13,7 @@ pub async fn server_sents_events(events: Arc<impl EventTrait>) -> Result<impl In
 
     let response = Response::builder()
         .header("Content-Type", "text/event-stream")
+        .header("X-Accel-Buffering", "no")
         .body(Body::wrap_stream(stream))
         .unwrap();
     Ok((StatusCode::OK, response))
