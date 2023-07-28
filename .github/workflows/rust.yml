@@ -46,7 +46,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cargo-
     - name: Build and run Docker Compose Service
-      run: docker-compose up -d database
+      run: docker-compose up -d
 
     # Setup Rust (using database)
     - name: set nightly toolchain
@@ -58,6 +58,11 @@ jobs:
     - name: Database migration
       run: sqlx db create; sqlx migrate run
     # Setup Rust (Coverage)
+    - name: Setup GCC
+      run: |
+        sudo apt update
+        sudo apt install -y gcc-9 g++-9
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90 --slave /usr/bin/g++ g++ /usr/bin/g++-9
     - name: install grcov
       run: cargo install grcov
     - name: Generate coverage report
