@@ -10,7 +10,7 @@ use crate::{
     repositories::{
         events::traits::EventTrait,
         section::{
-            models::{CreateSection, SectionInfo, UpdateSection},
+            models::{CreateSection, SectionInfo, UpdatePayload, UpdateSection},
             traits::SectionRepository,
         },
     },
@@ -84,7 +84,7 @@ pub async fn create_section<R: SectionRepository>(
 pub async fn update_section<R: SectionRepository>(
     Path((gender, building, floor)): Path<(String, String, i32)>,
     State(repository): State<Arc<R>>,
-    Json(payload): Json<String>,
+    Json(payload): Json<UpdatePayload>,
 ) -> Result<impl IntoResponse, StatusCode> {
     // first get the id of the section
     let id = repository
@@ -96,7 +96,8 @@ pub async fn update_section<R: SectionRepository>(
         .id;
     let section = UpdateSection {
         id,
-        status: payload,
+        current_status: payload.current_status,
+        next_status: payload.next_status,
     };
     let section = repository.update(section).await.unwrap();
 

@@ -27,7 +27,14 @@ pub struct CreateSection {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct UpdateSection {
     pub id: i32,
-    pub status: String,
+    pub current_status: String,
+    pub next_status: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+pub struct UpdatePayload {
+    pub current_status: String,
+    pub next_status: String,
 }
 
 pub struct Usage {
