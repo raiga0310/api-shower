@@ -46,7 +46,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cargo-
     - name: Build and run Docker Compose Service
-      run: docker-compose up -d
+      run: docker-compose up -d database
 
     # Setup Rust (using database)
     - name: set nightly toolchain
