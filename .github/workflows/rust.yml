@@ -49,8 +49,6 @@ jobs:
       run: docker-compose up -d
 
     # Setup Rust (using database)
-    - name: set nightly toolchain
-      run: rustup toolchain install nightly && rustup default nightly
     - name: Add sqlx
       uses: baptiste0928/cargo-install@v2
       with:
@@ -62,18 +60,6 @@ jobs:
       with:
         command: test
         args: --all-features --no-fail-fast
-      env:
-        CARGO_INCREMENTAL: '0'
-        RUSTFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
-        RUSTDOCFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
-    - id: coverage
-      uses: actions-rs/grcov@v0.1.6
-    - name: Coveralls upload
-      uses: coverallsapp/github-action@master
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: ${{ steps.coverage.outputs.coverage-report }}
-
     # Shut down Docker Compose (Clean up)
     - name: Shut down Docker Compose services
       run: docker-compose down
