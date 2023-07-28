@@ -6,10 +6,16 @@ use axum::{
 };
 use std::sync::Arc;
 
-use crate::{repositories::{section::{
-    models::{CreateSection, SectionInfo, UpdateSection},
-    traits::SectionRepository,
-}, events::traits::EventTrait}, EVENTS};
+use crate::{
+    repositories::{
+        events::traits::EventTrait,
+        section::{
+            models::{CreateSection, SectionInfo, UpdateSection},
+            traits::SectionRepository,
+        },
+    },
+    EVENTS,
+};
 
 pub async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "nothing to here")
