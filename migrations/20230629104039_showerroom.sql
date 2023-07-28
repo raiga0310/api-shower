@@ -4,10 +4,10 @@ CREATE TABLE sections (
     floor INT NOT NULL CHECK (floor >= 1 AND floor <= 4),
     gender TEXT NOT NULL CHECK (gender IN('male', 'female')),
     total INT NOT NULL,
-    available INT NOT NULL,
-    occupied INT NOT NULL DEFAULT 0,
-    disabled_rooms INT NOT NULL DEFAULT 0,
-    CHECK (total >= available + occupied + disabled_rooms)
+    available INT NOT NULL CHECK (available >= 0),
+    occupied INT NOT NULL CHECK (occupied >= 0) DEFAULT 0,
+    disabled_rooms INT NOT NULL CHECK (disabled_rooms >= 0) DEFAULT 0,
+    CHECK (total = available + occupied + disabled_rooms)
 );
 
 CREATE TABLE usage_history (
