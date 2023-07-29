@@ -27,24 +27,7 @@ docker-compose build
 
 4. Run the docker container / Dockerコンテナを起動する
 ```bash
-docker-compose up -d
-```
-
-5. Setup the database / データベースをセットアップする
-```bash
-cargo install sqlx-cli --no-default-features --features postgres
-sqlx db create
-sqlx migrate run
-```
-
-6. Set Environment Variables / 環境変数を設定する
-```bash
-echo "DATABASE_URL=postgres://user:password@localhost:5432/shower" > .env
-```
-
-7. Run the server / サーバーを起動する
-```bash
-cargo run
+docker-compose up
 ```
 
 ## Usage / 使い方
