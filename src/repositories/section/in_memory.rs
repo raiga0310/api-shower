@@ -1,7 +1,7 @@
 use crate::repositories::section::errors::RepositoryError;
 use crate::repositories::section::models::{CreateSection, Section, SectionInfo, UpdateSection};
 use crate::repositories::section::traits::SectionRepository;
-use crate::repositories::section::utils::switch_usage;
+use crate::repositories::section::utils::inmemory_switch_usage;
 use anyhow::Context;
 use axum::async_trait;
 use std::collections::HashMap;
@@ -113,7 +113,8 @@ impl SectionRepository for InMemorySectionRepository {
         let section = store
             .get(&payload.id)
             .context(RepositoryError::NotFound(payload.id))?;
-        let usage = switch_usage(payload.status, section.clone())?;
+        let usage =
+            inmemory_switch_usage(payload.current_status, payload.next_status, section.clone())?;
         let section = Section {
             id: payload.id,
             gender: section.gender.clone(),
@@ -169,11 +170,12 @@ mod in_memory_tests {
         assert_eq!(sections[0].id, 1);
         assert_eq!(sections[0].total, 10);
 
-        // 4. updateで更新(status は2パターン)
+        // 4. updateで更新(status更新は6パターン(うち2パターン))
         // 4.1. status = "occupied"
         let update_section = UpdateSection {
             id: 1,
-            status: "occupied".to_string(),
+            current_status: "available".to_string(),
+            next_status: "occupied".to_string(),
         };
         let updated_section = repo.update(update_section).await.unwrap();
         assert_eq!(updated_section.available, 9);
@@ -182,7 +184,8 @@ mod in_memory_tests {
         // 4.2. status = "available"
         let update_section = UpdateSection {
             id: 1,
-            status: "available".to_string(),
+            current_status: "occupied".to_string(),
+            next_status: "available".to_string(),
         };
         let updated_section = repo.update(update_section).await.unwrap();
         assert_eq!(updated_section.available, 10);

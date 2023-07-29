@@ -3,6 +3,8 @@ use crate::repositories::section::traits::SectionRepository;
 use axum::async_trait;
 use sqlx::PgPool;
 
+use super::utils::query_switch_usage;
+
 #[derive(Clone, Debug)]
 pub struct DBSectionRepository {
     pool: PgPool,
@@ -90,12 +92,7 @@ impl SectionRepository for DBSectionRepository {
     }
 
     async fn update(&self, section: UpdateSection) -> anyhow::Result<Section> {
-        let query = match section.status.as_str() {
-            "available" => "update sections set available = available + 1, occupied = occupied - 1 where id = $1 returning *",
-            "occupied" => "update sections set available = available - 1, occupied = occupied + 1 where id = $1 returning *",
-            "disabled" => "update sections set disabled_rooms = disabled_rooms + 1, available = available - 1 where id = $1 returning *",
-            _ => "",
-        };
+        let query = query_switch_usage(section.current_status, section.next_status).unwrap();
         let section = sqlx::query_as::<_, Section>(query)
             .bind(section.id)
             .fetch_one(&self.pool)
@@ -181,17 +178,43 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_update() -> Result<()> {
+    async fn test_update_available() -> Result<()> {
         let repository = setup().await?;
 
         let update_section = UpdateSection {
-            id: 1,                          // Some example id
-            status: "occupied".to_string(), // Some example status
+            id: 1, // Some example id
+            current_status: "available".to_string(),
+            next_status: "occupied".to_string(),
         };
         let old_section = repository.find_by_id(update_section.id).await?;
         let updated_section = repository.update(update_section).await?;
         // Assert based on your known test data
         assert_eq!(updated_section.occupied, old_section.occupied + 1);
+        assert_eq!(updated_section.available, old_section.available - 1);
+
+        let update_section = UpdateSection {
+            id: 1,
+            current_status: "occupied".to_string(),
+            next_status: "available".to_string(),
+        };
+        let old_section = repository.find_by_id(update_section.id).await?;
+        let updated_section = repository.update(update_section).await?;
+        // Assert based on your known test data
+        assert_eq!(updated_section.occupied, old_section.occupied - 1);
+        assert_eq!(updated_section.available, old_section.available + 1);
+
+        let update_section = UpdateSection {
+            id: 1, // Some example id
+            current_status: "available".to_string(),
+            next_status: "disabled".to_string(), // Some example status
+        };
+        let old_section = repository.find_by_id(update_section.id).await?;
+        let updated_section = repository.update(update_section).await?;
+        // Assert based on your known test data
+        assert_eq!(
+            updated_section.disabled_rooms,
+            old_section.disabled_rooms + 1
+        );
         assert_eq!(updated_section.available, old_section.available - 1);
 
         Ok(())

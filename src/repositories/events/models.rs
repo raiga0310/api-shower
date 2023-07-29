@@ -1,28 +1,27 @@
 use axum::async_trait;
-use tokio::sync::mpsc::UnboundedReceiver;
-use tokio::sync::{mpsc::UnboundedSender, mpsc::unbounded_channel, Mutex};
 use std::collections::HashMap;
-use std::sync::{Arc, atomic::AtomicU64, atomic::Ordering};
+use std::sync::{atomic::AtomicU64, atomic::Ordering, Arc};
+use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::{mpsc::unbounded_channel, mpsc::UnboundedSender, Mutex};
 
 use crate::repositories::events::traits::EventTrait;
 
 pub struct Events {
     clients: Arc<Mutex<HashMap<u64, UnboundedSender<String>>>>,
-    last_id: AtomicU64
+    last_id: AtomicU64,
 }
 
 impl Events {
     pub fn new() -> Self {
         Self {
             clients: Arc::new(Mutex::new(HashMap::new())),
-            last_id: AtomicU64::new(0)
+            last_id: AtomicU64::new(0),
         }
     }
 }
 
 #[async_trait]
 impl EventTrait for Events {
-
     async fn subscribe(&self) -> UnboundedReceiver<String> {
         let (tx, rx) = unbounded_channel();
         let id = self.last_id.fetch_add(1, Ordering::SeqCst);
@@ -71,4 +70,3 @@ mod events_test {
         });
     }
 }
-

@@ -1,12 +1,18 @@
 mod handlers;
 mod repositories;
 
-use crate::repositories::{section::{db::DBSectionRepository, traits::SectionRepository}, events::models::Events};
+use crate::repositories::{
+    events::models::Events,
+    section::{db::DBSectionRepository, traits::SectionRepository},
+};
 
-use handlers::{section::{
-    create_section, handler_404, root, showerrooms_all, showerrooms_building, showerrooms_floor,
-    showerrooms_gender, update_section,
-}, events::server_sents_events};
+use handlers::{
+    events::server_sents_events,
+    section::{
+        create_section, handler_404, root, showerrooms_all, showerrooms_building,
+        showerrooms_floor, showerrooms_gender, update_section,
+    },
+};
 
 use axum::{routing::get, Router};
 use dotenv::dotenv;
@@ -15,7 +21,8 @@ use sqlx::PgPool;
 use std::{env, net::SocketAddr, sync::Arc};
 use tower_http::cors::{Any, CorsLayer};
 
-static EVENTS: once_cell::sync::Lazy<Arc<Events>> = once_cell::sync::Lazy::new(|| Arc::new(Events::new()));
+static EVENTS: once_cell::sync::Lazy<Arc<Events>> =
+    once_cell::sync::Lazy::new(|| Arc::new(Events::new()));
 
 #[tokio::main]
 async fn main() {
@@ -64,10 +71,11 @@ fn create_app<R: SectionRepository>(repository: R) -> Router {
             get(showerrooms_building::<R>),
         )
         .route(
-            "/events", get({
+            "/events",
+            get({
                 let events = Arc::clone(&EVENTS);
                 move || server_sents_events(Arc::clone(&events))
-            })
+            }),
         )
         .route(
             "/:gender/:building/:floor/showerrooms",
@@ -270,7 +278,12 @@ mod unite_tests {
     async fn test_update_section() {
         let repository = create_populated_repository().await;
         let app = create_app(repository);
-        let request_body = Body::from(r#""occupied""#);
+        let request_body = Body::from(
+            r#"{
+                "current_status": "available",
+                "next_status": "occupied"
+            }"#
+        );
         let request = Request::builder()
             .method(Method::PATCH)
             .uri("/male/A/1/showerrooms")
