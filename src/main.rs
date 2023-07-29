@@ -278,7 +278,12 @@ mod unite_tests {
     async fn test_update_section() {
         let repository = create_populated_repository().await;
         let app = create_app(repository);
-        let request_body = Body::from(r#""occupied""#);
+        let request_body = Body::from(
+            r#"{
+                "current_status": "available",
+                "next_status": "occupied"
+            }"#
+        );
         let request = Request::builder()
             .method(Method::PATCH)
             .uri("/male/A/1/showerrooms")
