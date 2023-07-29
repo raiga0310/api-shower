@@ -182,24 +182,6 @@ mod tests {
         let repository = setup().await?;
 
         let update_section = UpdateSection {
-            id: 1,
-            current_status: "occupied".to_string(),
-            next_status: "available".to_string(),
-        };
-        let old_section = repository.find_by_id(update_section.id).await?;
-        let updated_section = repository.update(update_section).await?;
-        // Assert based on your known test data
-        assert_eq!(updated_section.occupied, old_section.occupied - 1);
-        assert_eq!(updated_section.available, old_section.available + 1);
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn test_update_occupied() -> Result<()> {
-        let repository = setup().await?;
-
-        let update_section = UpdateSection {
             id: 1, // Some example id
             current_status: "available".to_string(),
             next_status: "occupied".to_string(),
@@ -210,12 +192,16 @@ mod tests {
         assert_eq!(updated_section.occupied, old_section.occupied + 1);
         assert_eq!(updated_section.available, old_section.available - 1);
 
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn test_update_disabled() -> Result<()> {
-        let repository = setup().await?;
+        let update_section = UpdateSection {
+            id: 1,
+            current_status: "occupied".to_string(),
+            next_status: "available".to_string(),
+        };
+        let old_section = repository.find_by_id(update_section.id).await?;
+        let updated_section = repository.update(update_section).await?;
+        // Assert based on your known test data
+        assert_eq!(updated_section.occupied, old_section.occupied - 1);
+        assert_eq!(updated_section.available, old_section.available + 1);
 
         let update_section = UpdateSection {
             id: 1, // Some example id
